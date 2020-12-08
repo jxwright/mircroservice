@@ -80,6 +80,7 @@
 		<module>wright-api</module>
 		<module>wright-entity</module>
 		<module>wright-wechat</module>
+		<module>wright-gateway</module>
 	</modules>
 	<repositories>
 		<!--阿里云主仓库，代理了maven central和jcenter仓库 -->

@@ -80,9 +80,9 @@ public class BaseService {
 	protected  Page getPageDataList(String sql,String dto,int pageNum,int pageSize)
 	{
 		String tsql = sql.toLowerCase();
-		int i1 = tsql.indexOf("from");
-		int i2 = tsql.indexOf("select");
-		String countSql = sql.replace(tsql.substring(i2+6, i1), " count(1) ");
+		int i1 = tsql.indexOf("from ");
+		System.out.println(tsql.substring(i1, tsql.length()));
+		String countSql = "select count(1) " +tsql.substring(i1, tsql.length());
 		Query cq = entityManager.createNativeQuery(countSql);
 		List<?> rows = cq.getResultList(); 
 		int c = Integer.parseInt(rows.get(0).toString());

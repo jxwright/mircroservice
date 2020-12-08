@@ -1,6 +1,8 @@
 package com.wright.module.ebank.service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.wright.common.base.BaseService;
+import com.wright.module.ebank.dto.BankAccDetail;
+import com.wright.module.ebank.dto.BankMonthDetail;
 import com.wright.module.ebank.dto.FavoriteAccBalance;
+import com.wright.module.ebank.dto.ValueAndLabel;
 import com.wright.system.entity.wechat.BankData;
 import com.wright.utils.Page;
 
@@ -149,7 +154,7 @@ public class WeChatService  extends BaseService{
 //		        return page;
 //		}
 //	 
-	 public Page getBankAccountDetailByParam1(Map<String, Object> param) {
+	 public Page getBankAccountDetail(Map<String, Object> param) {
 		 		int page = (null==param.get("page")?1:Integer.parseInt(param.get("page").toString()));
 		        String filterType = param.get("filterType").toString();
 		        String condition = "";
@@ -159,10 +164,24 @@ public class WeChatService  extends BaseService{
 		        	condition = " and DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(trans_date)";
 		        else if(filterType.equals("month"))
 		        	condition = " and DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(trans_date)";
-		        else if(filterType.equals("week"))
+		        else if(filterType.equals("date"))
 		        {
-		        	String begin = param.get("begin").toString();
-		        	String end = param.get("end").toString();
+		            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		        	String begin = "";
+		        	String end = "";
+		        	String month = (null!=param.get("month"))?param.get("month").toString():"";
+		        	if(!"".equals(month))
+		        	{
+		                LocalDate monthDate = LocalDate.parse(month+"-01");
+		        		begin = monthDate.with(TemporalAdjusters.firstDayOfMonth()).format(fmt);
+		                end = monthDate.with(TemporalAdjusters.lastDayOfMonth()).format(fmt);
+		        	}
+		        	else
+		        	{
+		        		 begin = param.get("startDate").toString();
+			        	 end = param.get("endDate").toString();
+		        	}
+		        	
 		        	condition = " and unix_timestamp(trans_date) between unix_timestamp('"+begin+"') and unix_timestamp('"+end+"') ";
 		        }
 		        String sql = "select \r\n" + 
@@ -176,7 +195,7 @@ public class WeChatService  extends BaseService{
 		        		" ref_info,\r\n" + 
 		        		" settle_mode,\r\n" + 
 		        		" summary,\r\n" + 
-		        		" trans_date,\r\n" + 
+		        		" DATE_FORMAT(trans_date,'%Y-%m-%d %H:%i:%S') as trans_date,\r\n" + 
 		        		" trans_flag,\r\n" + 
 		        		" trans_period,\r\n" + 
 		        		" trans_year,\r\n" + 
@@ -186,4 +205,265 @@ public class WeChatService  extends BaseService{
 		        		" where account_id = '"+param.get("accId")+"'"+condition+" order by trans_date desc";
 		 		return  this.getPageDataList(sql, "BankAccDetail", page, 15);
 		}
+	 
+	 public Map<String,Object> getBankMonthAmount(Map<String, Object> param) {
+		 
+		 String filterType = param.get("filterType").toString();
+		 String accId = param.get("accId").toString();
+		 String limit ="6";
+		 switch(filterType){
+		 case "ay":
+			 limit = "12";
+			 break;
+		 case "ty":
+			 limit = "24";
+			 break;
+		 }
+		 String sql = querySql("credit_amount",limit,accId);
+		 List<BankMonthDetail> r1 = this.getDataList(sql, "BankMonthDetail");
+		 sql = querySql("debit_amount",limit,accId);
+		 List<BankMonthDetail> r2 = this.getDataList(sql, "BankMonthDetail");
+		 Map<String,Object> result = new HashMap<String,Object>();
+		 result.put("cm", r1);
+		 result.put("dm",r2);
+		 return result;
+		 
+	 }
+	 
+	 private String querySql(String type,String limit,String accId)
+	 {
+		 String sql = "select a.period,IFNULL(b.amount,0) as amount from \r\n" + 
+		 		"    (SELECT  DATE_FORMAT(DATE_SUB(NOW(), INTERVAL xc-1 MONTH), '%Y-%m') as period\r\n" + 
+		 		"    FROM ( \r\n" + 
+		 		"    			SELECT @xi\\:=@xi+1 as xc from \r\n" + 
+		 		"    			(SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) xc1, \r\n" + 
+		 		"    			(SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) xc2,  \r\n" + 
+		 		"    			(SELECT @xi\\:=0) xc0 \r\n" + 
+		 		"    )xcxc LIMIT "+limit+")a\r\n" + 
+		 		"left join \r\n" + 
+		 		"(select concat(t.trans_year,'-',t.trans_period) AS PERIOD, \r\n" + 
+		 		" SUM(IFNULL(T."+type+",0)) as amount\r\n" + 
+		 		" from ai_transdetails t\r\n" + 
+		 		" where t.account_id='"+accId+"'\r\n" + 	
+		 		" and PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , CONCAT(t.trans_year,t.trans_period))<"+limit+"\r\n" + 
+		 		" GROUP BY \r\n" + 
+		 		" concat(t.trans_year,'-',t.trans_period)) b on a.period=b.period\r\n" + 
+		 		"ORDER BY a.period";
+		 
+		 return sql;
+	 }
+	 
+ public Map<String,Object> getBankMonthAmountPie(Map<String, Object> param) {
+		 
+		 String filterType = param.get("filterType").toString();
+		 String accId = param.get("accId").toString();
+		 String limit ="6";
+		 switch(filterType){
+		 case "ay":
+			 limit = "12";
+			 break;
+		 case "ty":
+			 limit = "24";
+			 break;
+		 }
+		 String sql = "SELECT\r\n" + 
+		 		"	ifnull(SUM( t.credit_amount ),0) AS credit_amount,\r\n" + 
+		 		"	ifnull(sum( t.debit_amount ),0) AS debit_amount \r\n" + 
+		 		" FROM\r\n" + 
+		 		"	ai_transdetails T \r\n" + 
+		 		" WHERE\r\n" + 
+		 		" t.account_id='"+accId+"' and\r\n" + 
+		 		"	CONCAT( t.trans_year, t.trans_period ) >= DATE_FORMAT( DATE_SUB( NOW( ), INTERVAL "+limit+" MONTH ), '%Y%m' )";
+		 List<BankAccDetail> r1 = this.getDataList(sql, "BankAccDetailPie");
+		 Map<String,Object> result = new HashMap<String,Object>();
+		 result.put("dm", r1.get(0).getDebitAmount());
+		 result.put("cm",r1.get(0).getCreditAmount());
+		 return result;
+		 
+	 }
+ 
+ /**
+  * 获取交易对象的统计
+  * @param param
+  * @return
+  */
+ public Map<String,Object> getBankCustData(Map<String, Object> param){
+
+	 String filterType = param.get("filterType").toString();
+	 String orgId = param.get("orgId").toString();
+	 String limit ="6";
+	 switch(filterType){
+	 case "ay":
+		 limit = "12";
+		 break;
+	 case "ty":
+		 limit = "24";
+		 break;
+	 }
+	 String sql = queryCustListSql("credit_amount",orgId,limit);
+	 List<ValueAndLabel> r1 = this.getDataList(sql, "ValueAndLabel");
+	 sql = queryCustListSql("debit_amount",orgId,limit);
+	 List<ValueAndLabel> r2 = this.getDataList(sql, "ValueAndLabel");
+	 Map<String,Object> result = new HashMap<String,Object>();
+	 result.put("dm", r2);
+	 result.put("cm",r1);
+	 return result;
+ }
+ private String queryCustListSql(String type,String orgId,String limit)
+ {
+	 String sql = "SELECT\r\n" + 
+		 		"	t.reciprocal_name as label,\r\n" + 
+		 		"	sum( t."+type+" ) as amount \r\n" + 
+		 		"FROM\r\n" + 
+		 		"	ai_transdetails t \r\n" + 
+		 		"	left join bi_bank_account c on t.account_id=c.id\r\n" + 
+		 		"WHERE\r\n" + 
+		 		"	t."+type+" > 0 \r\n" + 
+		 		"	and c.org_id='"+orgId+"'\r\n" + 
+		 		"	and CONCAT( t.trans_year, t.trans_period ) >= DATE_FORMAT( DATE_SUB( NOW( ), INTERVAL "+limit+" MONTH ), '%Y%m' )"+
+		 		" GROUP BY\r\n" + 
+		 		"	t.reciprocal_name \r\n" + 
+		 		"ORDER BY\r\n" + 
+		 		"	sum( t."+type+" ) DESC"+
+		 		"	LIMIT 10";
+	 return sql;
+ }
+ 
+ public Map<String,Object> getCustMonthAmount(Map<String, Object> param) {
+	 
+	 String filterType = param.get("filterType").toString();
+	 String custName = param.get("custName").toString();
+	 String orgId = param.get("orgId").toString();
+	 String limit ="6";
+	 switch(filterType){
+	 case "ay":
+		 limit = "12";
+		 break;
+	 case "ty":
+		 limit = "24";
+		 break;
+	 }
+	 String sql = queryCustChartSql("credit_amount",limit,custName,orgId);
+	 List<BankMonthDetail> r1 = this.getDataList(sql, "BankMonthDetail");
+	 sql = queryCustChartSql("debit_amount",limit,custName,orgId);
+	 List<BankMonthDetail> r2 = this.getDataList(sql, "BankMonthDetail");
+	 Map<String,Object> result = new HashMap<String,Object>();
+	 result.put("cm", r1);
+	 result.put("dm",r2);
+	 return result;
+	 
+ }
+ 
+ private String queryCustChartSql(String type,String limit,String custName,String orgId)
+ {
+	 String sql = "select a.period,IFNULL(b.amount,0) as amount from \r\n" + 
+	 		"    (SELECT  DATE_FORMAT(DATE_SUB(NOW(), INTERVAL xc-1 MONTH), '%Y-%m') as period\r\n" + 
+	 		"    FROM ( \r\n" + 
+	 		"    			SELECT @xi\\:=@xi+1 as xc from \r\n" + 
+	 		"    			(SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) xc1, \r\n" + 
+	 		"    			(SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) xc2,  \r\n" + 
+	 		"    			(SELECT @xi\\:=0) xc0 \r\n" + 
+	 		"    )xcxc LIMIT "+limit+")a\r\n" + 
+	 		"left join \r\n" + 
+	 		"(select concat(t.trans_year,'-',t.trans_period) AS PERIOD, \r\n" + 
+	 		" SUM(IFNULL(T."+type+",0)) as amount\r\n" + 
+	 		" from ai_transdetails t\r\n" + 
+	 		" left join bi_bank_account c on t.account_id=c.id \r\n" + 
+	 		" where t.reciprocal_name='"+custName+"'\r\n" + 	
+	 		" and c.org_id='"+orgId+"'\r\n" + 	
+	 		" and PERIOD_DIFF( date_format( now( ) , '%Y%m' ) , CONCAT(t.trans_year,t.trans_period))<"+limit+"\r\n" + 
+	 		" GROUP BY \r\n" + 
+	 		" concat(t.trans_year,'-',t.trans_period)) b on a.period=b.period\r\n" + 
+	 		"ORDER BY a.period";
+	 
+	 return sql;
+ }
+ 
+public Map<String,Object> getCustMonthAmountPie(Map<String, Object> param) {
+	 
+	String filterType = param.get("filterType").toString();
+	 String custName = param.get("custName").toString();
+	 String orgId = param.get("orgId").toString();
+	 String limit ="6";
+	 switch(filterType){
+	 case "ay":
+		 limit = "12";
+		 break;
+	 case "ty":
+		 limit = "24";
+		 break;
+	 }
+	 String sql = "SELECT\r\n" + 
+	 		"	ifnull(SUM( t.credit_amount ),0) AS credit_amount,\r\n" + 
+	 		"	ifnull(sum( t.debit_amount ),0) AS debit_amount \r\n" + 
+	 		" FROM\r\n" + 
+	 		"	ai_transdetails T \r\n" + 
+	 		" left join bi_bank_account c on t.account_id=c.id \r\n" + 
+	 		" WHERE\r\n" + 
+	 		" t.reciprocal_name='"+custName+"' \r\n" + 
+	 		" and c.org_id='"+orgId+"'\r\n" + 	
+	 		" and CONCAT( t.trans_year, t.trans_period ) >= DATE_FORMAT( DATE_SUB( NOW( ), INTERVAL "+limit+" MONTH ), '%Y%m' )";
+	 List<BankAccDetail> r1 = this.getDataList(sql, "BankAccDetailPie");
+	 Map<String,Object> result = new HashMap<String,Object>();
+	 result.put("dm", r1.get(0).getDebitAmount());
+	 result.put("cm",r1.get(0).getCreditAmount());
+	 return result;
+	 
+ }
+ 
+public Page getCustDealDetail(Map<String, Object> param) {
+		int page = (null==param.get("page")?1:Integer.parseInt(param.get("page").toString()));
+    String filterType = param.get("filterType").toString();
+    String orgId = param.get("orgId").toString();
+    String condition = "";
+    if(filterType.equals("day"))
+    	condition = " and to_days(trans_date) = to_days(now())";
+    else if(filterType.equals("week"))
+    	condition = " and DATE_SUB(CURDATE(), INTERVAL 7 DAY) <= date(trans_date)";
+    else if(filterType.equals("month"))
+    	condition = " and DATE_SUB(CURDATE(), INTERVAL 30 DAY) <= date(trans_date)";
+    else if(filterType.equals("date"))
+    {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    	String begin = "";
+    	String end = "";
+    	String month = (null!=param.get("month"))?param.get("month").toString():"";
+    	if(!"".equals(month))
+    	{
+            LocalDate monthDate = LocalDate.parse(month+"-01");
+    		begin = monthDate.with(TemporalAdjusters.firstDayOfMonth()).format(fmt);
+            end = monthDate.with(TemporalAdjusters.lastDayOfMonth()).format(fmt);
+    	}
+    	else
+    	{
+    		 begin = param.get("startDate").toString();
+        	 end = param.get("endDate").toString();
+    	}
+    	
+    	condition = " and unix_timestamp(trans_date) between unix_timestamp('"+begin+"') and unix_timestamp('"+end+"') ";
+    }
+    String sql = "select \r\n" + 
+    		" balance,\r\n" + 
+    		" credit_amount,\r\n" + 
+    		" debit_amount,\r\n" + 
+    		" postscript,\r\n" + 
+    		" reciprocal_account,\r\n" + 
+    		" reciprocal_bank,\r\n" + 
+    		" reciprocal_name,\r\n" + 
+    		" ref_info,\r\n" + 
+    		" settle_mode,\r\n" + 
+    		" summary,\r\n" + 
+    		" DATE_FORMAT(trans_date,'%Y-%m-%d %H:%i:%S') as trans_date,\r\n" + 
+    		" trans_flag,\r\n" + 
+    		" trans_period,\r\n" + 
+    		" trans_year,\r\n" + 
+    		" voucher_no,\r\n" + 
+    		" voucher_type\r\n" + 
+    		" from ai_transdetails t\r\n" + 
+    		" left join bi_bank_account c on t.account_id=c.id \r\n" + 
+    		" where reciprocal_name = '"+param.get("custName")+"'"+
+    		" and c.org_id='"+orgId+"'\r\n" + 	
+    		condition+" order by trans_date desc";
+		return  this.getPageDataList(sql, "BankAccDetail", page, 15);
+}
 }

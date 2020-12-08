@@ -9,7 +9,9 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.SqlResultSetMapping;
 
 import com.wright.module.ebank.dto.BankAccDetail;
+import com.wright.module.ebank.dto.BankMonthDetail;
 import com.wright.module.ebank.dto.FavoriteAccBalance;
+import com.wright.module.ebank.dto.ValueAndLabel;
 
 
 @MappedSuperclass
@@ -61,12 +63,39 @@ import com.wright.module.ebank.dto.FavoriteAccBalance;
 	    		@ColumnResult(name="ref_info",type = String.class),
 	    		@ColumnResult(name="settle_mode",type = short.class),
 	    		@ColumnResult(name="summary",type = String.class),
-	    		@ColumnResult(name="trans_date" ,type = Date.class),
+	    		@ColumnResult(name="trans_date" ,type = String.class),
 	    		@ColumnResult(name="trans_flag",type = String.class),
 	    		@ColumnResult(name="trans_period",type = String.class),
 	    		@ColumnResult(name="trans_year",type = String.class),
 	    		@ColumnResult(name="voucher_no",type = String.class),
 	    		@ColumnResult(name="voucher_type",type = String.class)
+})
+	})
+
+@SqlResultSetMapping(name="BankMonthDetail", classes = {
+	    @ConstructorResult(targetClass = BankMonthDetail.class, 
+	    columns = {
+	    		@ColumnResult(name="period",type = String.class),
+	    		@ColumnResult(name="amount", type = Double.class)
+	    		
+})
+	})
+
+@SqlResultSetMapping(name="BankAccDetailPie", classes = {
+	    @ConstructorResult(targetClass = BankAccDetail.class, 
+	    columns = {
+	    		@ColumnResult(name="credit_amount",type = Double.class),
+	    		@ColumnResult(name="debit_amount", type = Double.class)
+	    		
+})
+	})
+
+@SqlResultSetMapping(name="ValueAndLabel", classes = {
+	    @ConstructorResult(targetClass = ValueAndLabel.class, 
+	    columns = {
+	    		@ColumnResult(name="label",type = String.class),
+	    		@ColumnResult(name="amount", type = Double.class)
+	    		
 })
 	})
 public class SqlMappingCode {

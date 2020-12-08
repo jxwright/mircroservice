@@ -40,7 +40,37 @@ public class EBankController {
 	    
 	    @GetMapping(value = "getBankAccDetail")
 	    public RestResult<?> getBankAccDetail(@RequestParam Map<String,Object> param) {
-	        return ResultUtil.success(weChatService.getBankAccountDetailByParam1(param));
+	        return ResultUtil.success(weChatService.getBankAccountDetail(param));
+	    }
+	    
+	    @GetMapping(value = "getBankMonthAmount")
+	    public RestResult<?> getBankMonthAmount(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getBankMonthAmount(param));
+	    }
+	    
+	    @GetMapping(value = "getBankMonthAmountPie")
+	    public RestResult<?> getBankMonthAmountPie(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getBankMonthAmountPie(param));
+	    }
+	    
+	    @GetMapping(value = "getBankCustData")
+	    public RestResult<?> getBankCustData(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getBankCustData(param));
+	    }
+	    
+	    @GetMapping(value = "getCustMonthAmount")
+	    public RestResult<?> getCustMonthAmount(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getCustMonthAmount(param));
+	    }
+	    
+	    @GetMapping(value = "getCustMonthAmountPie")
+	    public RestResult<?> getCustMonthAmountPie(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getCustMonthAmountPie(param));
+	    }
+	    
+	    @GetMapping(value = "getCustDealDetail")
+	    public RestResult<?> getCustDealDetail(@RequestParam Map<String,Object> param) {
+	        return ResultUtil.success(weChatService.getCustDealDetail(param));
 	    }
 
 }

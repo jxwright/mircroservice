@@ -37,15 +37,15 @@ public class WeChatController {
 	@SuppressWarnings("rawtypes")
 	@GetMapping("/login")
 	public String login(String code) throws Exception {
-		String s = CommonRequestUtil.jscode2session("wx9f444e34417276f2", "b34118dada7824ae3eb80f417a292608", code,
-				"authorization_code");
-
-		System.out.println(s);
-		ObjectMapper objectMapper = new ObjectMapper();
-		Map tokenMap = objectMapper.readValue(s, Map.class);
-		redisTemplate.opsForHash().put("weChatSessionKey", tokenMap.get("openid"), tokenMap.get("session_key"));
+//		String s = CommonRequestUtil.jscode2session("wx9f444e34417276f2", "b34118dada7824ae3eb80f417a292608", code,
+//				"authorization_code");
+//
+//		System.out.println(s);
+//		ObjectMapper objectMapper = new ObjectMapper();
+//		Map tokenMap = objectMapper.readValue(s, Map.class);
+//		redisTemplate.opsForHash().put("weChatSessionKey", tokenMap.get("openid"), tokenMap.get("session_key"));
 		// SysUserApi.isExistUser();
-		return s;
+		return "sdsdfsdf";
 	}
 
 	@SuppressWarnings("rawtypes")
