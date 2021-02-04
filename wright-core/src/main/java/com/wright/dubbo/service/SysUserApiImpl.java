@@ -1,6 +1,6 @@
 package com.wright.dubbo.service;
 
-import org.apache.dubbo.config.annotation.Service;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.alibaba.fastjson.JSONObject;
@@ -8,7 +8,7 @@ import com.wright.api.SysUserApi;
 import com.wright.module.system.sysuser.entity.SysUser;
 import com.wright.module.system.sysuser.repository.SysUserRepository;
 
-@Service
+@DubboService
 public class SysUserApiImpl   implements SysUserApi{
 
 	@Autowired

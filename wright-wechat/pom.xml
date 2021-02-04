@@ -54,6 +54,12 @@
 			<artifactId>spring-cloud-starter-dubbo</artifactId>
 		</dependency>
 		
+		<!-- rocketmq -->
+		<dependency>
+   		 <groupId>com.alibaba.cloud</groupId>
+    	<artifactId>spring-cloud-starter-stream-rocketmq</artifactId>
+	</dependency>
+		
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>

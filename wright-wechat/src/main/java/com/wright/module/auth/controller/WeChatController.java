@@ -1,10 +1,10 @@
 package com.wright.module.auth.controller;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -22,15 +22,18 @@ import com.wright.utils.CommonRequestUtil;
 import com.wright.utils.RestResult;
 import com.wright.utils.ResultUtil;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.UnsupportedJwtException;
 
 @RestController
 public class WeChatController {
 
+	
+	@Value("${wechat.secret}")
+	private String secret;
+	
+	
+	@Value("${wechat.appid}")
+	private String appid;
 	@Autowired
 	private RedisTemplate<String, Object> redisTemplate;
 
@@ -57,7 +60,7 @@ public class WeChatController {
 		String phone = params.get("phone").toString();
 		String password = params.get("password").toString();
 
-		String s = CommonRequestUtil.jscode2session("wx9f444e34417276f2", "b34118dada7824ae3eb80f417a292608", code,
+		String s = CommonRequestUtil.jscode2session(appid, AesCbcUtil.decrypt(secret), code,
 				"authorization_code");
 
 		Map<String, Object> map = new HashMap<String, Object>();

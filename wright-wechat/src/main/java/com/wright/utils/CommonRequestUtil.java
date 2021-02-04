@@ -58,7 +58,7 @@ public class CommonRequestUtil {
      * @return 返回String 可转JSON
      */
     public static String getAccessToken(String appid,String secret){
-    	String tokenUrl = RequestUrl.WECHAT_JS_CODE_2_SESSION.getUrl();
+    	String tokenUrl = RequestUrl.WECHAT_GET_ACCESS_TOKEN.getUrl();
         OkHttpClient httpClient = new OkHttpClient();
         RequestBody body = new FormBody.Builder()
                 .add("grant_type", "client_credential")
@@ -163,5 +163,29 @@ public class CommonRequestUtil {
         	r.put("msg", e.getLocalizedMessage());
         }
         return r;
+    }
+    
+    public static String sendMessage(String appid,String secret){
+    	String tokenUrl = RequestUrl.WECHAT_JS_CODE_2_SESSION.getUrl();
+        OkHttpClient httpClient = new OkHttpClient();
+        RequestBody body = new FormBody.Builder()
+                .add("grant_type", "client_credential")
+                .add("appid", appid)
+                .add("secret",secret)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(tokenUrl)
+                .post(body)
+                .build();
+        try {
+            Response response = httpClient.newCall(request).execute();
+            String result = response.body().string();
+            System.out.println(result);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

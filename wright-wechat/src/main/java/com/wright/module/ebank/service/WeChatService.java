@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
 
 import javax.persistence.Query;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.stereotype.Service;
 
 import com.wright.common.base.BaseService;
@@ -22,13 +22,18 @@ import com.wright.module.ebank.dto.FavoriteAccBalance;
 import com.wright.module.ebank.dto.ValueAndLabel;
 import com.wright.system.entity.wechat.BankData;
 import com.wright.utils.Page;
+import com.wright.utils.RedisUtils;
+
+import org.springframework.cloud.stream.messaging.Sink;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class WeChatService  extends BaseService{
 
 	
-	@SuppressWarnings("unused")
-	private static Logger logger = LoggerFactory.getLogger(WeChatService.class);
+	@Autowired
+	private RedisUtils redisUtils;
 	
 	 public List<BankData> getBankDataByParam(Map<String, Object> param) {
 		 Integer monthInt = LocalDate.now().getMonthValue();
@@ -465,5 +470,11 @@ public Page getCustDealDetail(Map<String, Object> param) {
     		" and c.org_id='"+orgId+"'\r\n" + 	
     		condition+" order by trans_date desc";
 		return  this.getPageDataList(sql, "BankAccDetail", page, 15);
+}
+
+@StreamListener(Sink.INPUT)
+public void receive(String messageBody){
+	log.info("通过stream收到消息，messageBody = {}", messageBody);
+	redisUtils.hset("ss","item","value",7200);
 }
 }
